@@ -51,8 +51,8 @@ class AutoCommitter(pyinotify.ProcessEvent):
         message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
         subprocess.check_call(['git', 'add', '-A', '.'])
         if subprocess.check_output(['git', 'status', '--porcelain']):
-            subprocess.check_call(['git', 'commit', '-m', message])
             subprocess.check_call(['git', 'status', '--short'])
+            subprocess.check_call(['git', 'commit', '-m', message])
             print('')
         self.committing = False
 
