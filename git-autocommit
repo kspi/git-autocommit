@@ -6,7 +6,7 @@ import asyncio
 import os
 
 
-class AutoCommitter(pyinotify.ProcessEvent):
+class AutoCommit(pyinotify.ProcessEvent):
     EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
 
     def __init__(self):
@@ -66,4 +66,4 @@ class AutoCommitter(pyinotify.ProcessEvent):
 
 
 if __name__ == '__main__':
-    AutoCommitter().run()
+    AutoCommit().run()
