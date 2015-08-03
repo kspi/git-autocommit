@@ -22,25 +22,24 @@ class AutoCommitter(pyinotify.ProcessEvent):
         return pathname
 
     def process_IN_CREATE(self, event):
-        self.process('+', event)
+        self.process(event)
 
     def process_IN_DELETE(self, event):
-        self.process('-', event)
+        self.process(event)
 
     def process_IN_MODIFY(self, event):
-        self.process('*', event)
+        self.process(event)
 
     def process_IN_MOVED_FROM(self, event):
-        self.process('*', event)
+        self.process(event)
 
     def process_IN_MOVED_TO(self, event):
-        self.process('*', event)
+        self.process(event)
 
-    def process(self, symbol, event):
+    def process(self, event):
         pathname = self.shorten_pathname(event.pathname)
         if pathname.startswith('.git'):
             return
-        print("{} {}".format(symbol, pathname))
         self.commit_later()
 
     def commit_later(self):
@@ -50,13 +49,17 @@ class AutoCommitter(pyinotify.ProcessEvent):
 
     def commit(self):
         message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
-        print(message)
         subprocess.check_call(['git', 'add', '-A', '.'])
-        subprocess.check_call(['git', 'status'])
-        subprocess.check_call(['git', 'commit', '-m', message])
+        if subprocess.check_output(['git', 'status', '--porcelain']):
+            print(message)
+            subprocess.check_call(['git', 'status', '--short'])
+            subprocess.check_call(['git', 'commit', '-m', message])
+            print('')
         self.committing = False
 
     def run(self):
+        if not os.path.exists('.git'):
+            raise Exception("Should be called in root of repository.")
         wm = pyinotify.WatchManager()
         notifier = pyinotify.AsyncioNotifier(wm, self.loop, default_proc_fun=self)
         wm.add_watch('.', self.EVENT_MASK, rec=True, auto_add=True)
