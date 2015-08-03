@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+import subprocess
+import pyinotify
+from datetime import datetime
+import asyncio
+import os
+
+
+class AutoCommitter(pyinotify.ProcessEvent):
+    EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
+
+    def __init__(self):
+        self.committing = False
+        self.loop = asyncio.get_event_loop()
+        self.cwd = os.path.realpath(os.curdir)
+
+    def shorten_pathname(self, pathname):
+        if pathname.startswith(self.cwd):
+            pathname = pathname[len(self.cwd):]
+            if pathname.startswith('/'):
+                pathname = pathname[1:]
+        return pathname
+
+    def process_IN_CREATE(self, event):
+        self.process('+', event)
+
+    def process_IN_DELETE(self, event):
+        self.process('-', event)
+
+    def process_IN_MODIFY(self, event):
+        self.process('*', event)
+
+    def process_IN_MOVED_FROM(self, event):
+        self.process('*', event)
+
+    def process_IN_MOVED_TO(self, event):
+        self.process('*', event)
+
+    def process(self, symbol, event):
+        pathname = self.shorten_pathname(event.pathname)
+        if pathname.startswith('.git'):
+            return
+        print("{} {}".format(symbol, pathname))
+        self.commit_later()
+
+    def commit_later(self):
+        if not self.committing:
+            self.committing = True
+            self.loop.call_later(1, self.commit)
+
+    def commit(self):
+        message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+        print(message)
+        subprocess.check_call(['git', 'add', '-A', '.'])
+        subprocess.check_call(['git', 'status'])
+        subprocess.check_call(['git', 'commit', '-m', message])
+        self.committing = False
+
+    def run(self):
+        wm = pyinotify.WatchManager()
+        notifier = pyinotify.AsyncioNotifier(wm, self.loop, default_proc_fun=self)
+        wm.add_watch('.', self.EVENT_MASK, rec=True, auto_add=True)
+        self.loop.run_forever()
+
+
+if __name__ == '__main__':
+    AutoCommitter().run()
