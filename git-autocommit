@@ -38,7 +38,7 @@ class AutoCommit(pyinotify.ProcessEvent):
 
     def process(self, event):
         pathname = self.shorten_pathname(event.pathname)
-        if pathname.startswith('.git'):
+        if pathname.startswith('.git/'):
             return
         self.commit_later()
 
