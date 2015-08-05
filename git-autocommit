@@ -66,7 +66,10 @@ class AutoCommit(pyinotify.ProcessEvent):
         notifier = pyinotify.AsyncioNotifier(wm, self.loop, default_proc_fun=self)
         wm.add_watch('.', self.EVENT_MASK, rec=True, auto_add=True)
 
-        self.loop.run_forever()
+        try:
+            self.loop.run_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == '__main__':
