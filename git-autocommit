@@ -56,6 +56,13 @@ class AutoCommit(pyinotify.ProcessEvent):
             print('')
         self.committing = False
 
+    def exclude_filter(self, path):
+        """Exclude repository metadata from inotify watches."""
+        assert(path.startswith(self.cwd))
+        relative = path[len(self.cwd):]
+        print(relative)
+        return relative == '/.git' or relative.startswith('/.git/')
+
     def run(self):
         if not os.path.exists('.git'):
             raise Exception("Should be called in root of repository.")
@@ -64,7 +71,7 @@ class AutoCommit(pyinotify.ProcessEvent):
 
         wm = pyinotify.WatchManager()
         notifier = pyinotify.AsyncioNotifier(wm, self.loop, default_proc_fun=self)
-        wm.add_watch(self.cwd, self.EVENT_MASK, rec=True, auto_add=True)
+        wm.add_watch(self.cwd, self.EVENT_MASK, rec=True, auto_add=True, exclude_filter=self.exclude_filter)
 
         try:
             self.loop.run_forever()
