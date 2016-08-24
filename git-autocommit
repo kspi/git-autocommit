@@ -7,7 +7,7 @@ import os
 import sys
 import argparse
 
-class AutoCommit(pyinotify.ProcessEvent):
+class Watch(pyinotify.ProcessEvent):
     EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
 
     def __init__(self, branch='autocommit'):
@@ -82,7 +82,7 @@ class AutoCommit(pyinotify.ProcessEvent):
 
 
 def watch(args):
-    AutoCommit(args.branch).run()
+    Watch(branch=args.watch_branch).run()
 
 
 def summarize(args):
