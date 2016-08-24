@@ -90,7 +90,7 @@ def summarize(args):
 
 
 
-def set_default_subparser(self, name, args=None):
+def set_default_subparser(parser, name, args=None):
     """default subparser selection. Call after setup, just before parse_args()
     name: is the name of the subparser to call by default
     args: if set is the argument list handed to parse_args()
@@ -103,7 +103,7 @@ def set_default_subparser(self, name, args=None):
         if arg in ['-h', '--help']:  # global help if no subparser
             break
     else:
-        for x in self._subparsers._actions:
+        for x in parser._subparsers._actions:
             if not isinstance(x, argparse._SubParsersAction):
                 continue
             for sp_name in x._name_parser_map.keys():
@@ -116,8 +116,6 @@ def set_default_subparser(self, name, args=None):
                 sys.argv.insert(1, name)
             else:
                 args.insert(0, name)
-
-argparse.ArgumentParser.set_default_subparser = set_default_subparser
 
 def main():
     parser = argparse.ArgumentParser()
@@ -135,7 +133,7 @@ def main():
                               help="summary message []")
     summarize_parser.set_defaults(func=summarize)
 
-    parser.set_default_subparser('watch')
+    set_default_subparser(parser, 'watch')
     args = parser.parse_args()
     args.func(args)
 
