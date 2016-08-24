@@ -86,7 +86,8 @@ def watch(args):
 
 
 def summarize(args):
-    pass
+    subprocess.check_call(['git', 'checkout', '-B', args.branch])
+    subprocess.check_call(['git', 'merge', '-B', self.branch])
 
 
 
@@ -119,11 +120,11 @@ def set_default_subparser(parser, name, args=None):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-w", "--watch-branch", type=str, default='autocommit',
+                        help="automatically commit to this branch [autocommit]")
     subparsers = parser.add_subparsers(help="subcommands")
 
     watch_parser = subparsers.add_parser('watch', help='watch repository for changes and commit them')
-    watch_parser.add_argument("-b", "--branch", type=str, default='autocommit',
-                              help="commit to this branch [autocommit]")
     watch_parser.set_defaults(func=watch)
 
     summarize_parser = subparsers.add_parser('summarize', help='watch repository for changes and commit them')
