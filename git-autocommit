@@ -86,11 +86,11 @@ def watch(args):
 
 
 def summarize(args):
-    subprocess.check_call(['git', 'checkout', '-B', args.branch])
+    subprocess.check_call(['git', 'checkout', args.branch])
     if args.message:
-        subprocess.check_call(['git', 'merge', '--no-ff', '-m', args.message, self.watch_branch])
+        subprocess.check_call(['git', 'merge', '--no-ff', '-m', args.message, args.watch_branch])
     else:
-        subprocess.check_call(['git', 'merge', '--no-ff', self.watch_branch])
+        subprocess.check_call(['git', 'merge', '--no-ff', args.watch_branch])
 
 
 
