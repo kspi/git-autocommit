@@ -4,12 +4,14 @@ import pyinotify
 from datetime import datetime
 import asyncio
 import os
-
+import sys
+import argparse
 
 class AutoCommit(pyinotify.ProcessEvent):
     EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
 
-    def __init__(self):
+    def __init__(self, branch='autocommit'):
+        self.branch = branch
         self.committing = False
         self.loop = asyncio.get_event_loop()
         self.cwd = os.path.realpath(os.curdir)
@@ -49,6 +51,7 @@ class AutoCommit(pyinotify.ProcessEvent):
 
     def commit(self):
         message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+        subprocess.check_call(['git', 'checkout', '-b', self.branch])
         subprocess.check_call(['git', 'add', '-A', '.'])
         if subprocess.check_output(['git', 'status', '--porcelain']):
             subprocess.check_call(['git', 'status', '--short'])
@@ -60,7 +63,6 @@ class AutoCommit(pyinotify.ProcessEvent):
         """Exclude repository metadata from inotify watches."""
         assert(path.startswith(self.cwd))
         relative = path[len(self.cwd):]
-        print(relative)
         return relative == '/.git' or relative.startswith('/.git/')
 
     def run(self):
@@ -79,5 +81,64 @@ class AutoCommit(pyinotify.ProcessEvent):
             pass
 
 
+def watch(args):
+    AutoCommit(args.branch).run()
+
+
+def summarize(args):
+    pass
+
+
+
+def set_default_subparser(self, name, args=None):
+    """default subparser selection. Call after setup, just before parse_args()
+    name: is the name of the subparser to call by default
+    args: if set is the argument list handed to parse_args()
+
+    , tested with 2.7, 3.2, 3.3, 3.4
+    it works with 2.6 assuming argparse is installed
+    """
+    subparser_found = False
+    for arg in sys.argv[1:]:
+        if arg in ['-h', '--help']:  # global help if no subparser
+            break
+    else:
+        for x in self._subparsers._actions:
+            if not isinstance(x, argparse._SubParsersAction):
+                continue
+            for sp_name in x._name_parser_map.keys():
+                if sp_name in sys.argv[1:]:
+                    subparser_found = True
+        if not subparser_found:
+            # insert default in first position, this implies no
+            # global options without a sub_parsers specified
+            if args is None:
+                sys.argv.insert(1, name)
+            else:
+                args.insert(0, name)
+
+argparse.ArgumentParser.set_default_subparser = set_default_subparser
+
+def main():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(help="subcommands")
+
+    watch_parser = subparsers.add_parser('watch', help='watch repository for changes and commit them')
+    watch_parser.add_argument("-b", "--branch", type=str, default='autocommit',
+                              help="commit to this branch [autocommit]")
+    watch_parser.set_defaults(func=watch)
+
+    summarize_parser = subparsers.add_parser('summarize', help='watch repository for changes and commit them')
+    summarize_parser.add_argument("-b", "--branch", type=str, default='master',
+                                  help="commit summary to this branch [master]")
+    summarize_parser.add_argument("-m", "--message", type=str, default='',
+                              help="summary message []")
+    summarize_parser.set_defaults(func=summarize)
+
+    parser.set_default_subparser('watch')
+    args = parser.parse_args()
+    args.func(args)
+
+
 if __name__ == '__main__':
-    AutoCommit().run()
+    main()
