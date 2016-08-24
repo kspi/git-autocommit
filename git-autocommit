@@ -7,12 +7,37 @@ import os
 import sys
 import argparse
 
+
+class StateFile:
+    def __init__(self, filename, reset=None):
+        self.filename = filename
+
+    @property
+    def state(self):
+        value = os.path.exists(self.filename)
+        print("{}={}".format(self.filename, value))
+        return value
+
+    @state.setter
+    def state(self, value):
+        if value:
+            with open(self.filename, "w"):
+                pass
+        elif os.path.exists(self.filename):
+            os.remove(self.filename)
+        return value
+
+
+WATCHING = StateFile(".git/autocommit-watching")
+COMMITTING = StateFile(".git/autocommit-committing")
+SUMMARIZING = StateFile(".git/autocommit-summarizing")
+
+
 class Watcher(pyinotify.ProcessEvent):
     EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
 
     def __init__(self, branch='autocommit'):
         self.branch = branch
-        self.committing = False
         self.loop = asyncio.get_event_loop()
         self.cwd = os.path.realpath(os.curdir)
 
@@ -45,19 +70,25 @@ class Watcher(pyinotify.ProcessEvent):
         self.commit_later()
 
     def commit_later(self):
-        if not self.committing:
-            self.committing = True
+        if not COMMITTING.state:
+            COMMITTING.state = True
             self.loop.call_later(1, self.commit)
 
     def commit(self):
-        message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
-        subprocess.check_call(['git', 'checkout', '-B', self.branch], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        subprocess.check_call(['git', 'add', '-A', '.'])
-        if subprocess.check_output(['git', 'status', '--porcelain']):
-            subprocess.check_call(['git', 'status', '--short'])
-            subprocess.check_call(['git', 'commit', '-m', message])
-            print('')
-        self.committing = False
+        if SUMMARIZING.state:
+            self.loop.call_later(1, self.commit)
+        else:
+            message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
+            try:
+                subprocess.check_call(['git', 'checkout', self.branch])
+            except subprocess.CalledProcessError:
+                subprocess.check_call(['git', 'checkout', '-b', self.branch])
+            subprocess.check_call(['git', 'add', '-A', '.'])
+            if subprocess.check_output(['git', 'status', '--porcelain']):
+                subprocess.check_call(['git', 'status', '--short'])
+                subprocess.check_call(['git', 'commit', '-m', message])
+                print('')
+            COMMITTING.state = False
 
     def exclude_filter(self, path):
         """Exclude repository metadata from inotify watches."""
@@ -82,15 +113,29 @@ class Watcher(pyinotify.ProcessEvent):
 
 
 def watch(args):
-    Watcher(branch=args.watch_branch).run()
+    if WATCHING.state:
+        raise Exception("A watch process is already running")
+    WATCHING.state = True
+    try:
+        Watcher(branch=args.watch_branch).run()
+    finally:
+        WATCHING.state = False
+        COMMITTING.state = False
 
 
 def summarize(args):
-    subprocess.check_call(['git', 'checkout', args.branch])
-    if args.message:
-        subprocess.check_call(['git', 'merge', '--no-ff', '-m', args.message, args.watch_branch])
-    else:
-        subprocess.check_call(['git', 'merge', '--no-ff', args.watch_branch])
+    import time
+    while COMMITTING.state:
+        time.sleep(0.1)
+    SUMMARIZING.state = True
+    try:
+        subprocess.check_call(['git', 'checkout', args.branch])
+        if args.message:
+            subprocess.check_call(['git', 'merge', '--no-ff', '-m', args.message, args.watch_branch])
+        else:
+            subprocess.check_call(['git', 'merge', '--no-ff', args.watch_branch])
+    finally:
+        SUMMARIZING.state = False
 
 
 
