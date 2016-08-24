@@ -121,15 +121,15 @@ def set_default_subparser(parser, name, args=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-w", "--watch-branch", type=str, default='autocommit',
-                        help="automatically commit to this branch [autocommit]")
+                        help="automatically commit to this branch [default: autocommit]")
     subparsers = parser.add_subparsers(help="subcommands")
 
-    watch_parser = subparsers.add_parser('watch', help='watch repository for changes and commit them')
+    watch_parser = subparsers.add_parser('watch', help='watch repository for changes and commit them [default]')
     watch_parser.set_defaults(func=watch)
 
     summarize_parser = subparsers.add_parser('summarize', help='watch repository for changes and commit them')
     summarize_parser.add_argument("-b", "--branch", type=str, default='master',
-                                  help="commit summary to this branch [master]")
+                                  help="commit summary to this branch [default: master]")
     summarize_parser.add_argument("-m", "--message", type=str, default='',
                               help="summary message []")
     summarize_parser.set_defaults(func=summarize)
