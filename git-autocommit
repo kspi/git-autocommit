@@ -15,7 +15,6 @@ class StateFile:
     @property
     def state(self):
         value = os.path.exists(self.filename)
-        print("{}={}".format(self.filename, value))
         return value
 
     @state.setter
