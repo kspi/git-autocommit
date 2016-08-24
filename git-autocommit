@@ -7,7 +7,7 @@ import os
 import sys
 import argparse
 
-class Watch(pyinotify.ProcessEvent):
+class Watcher(pyinotify.ProcessEvent):
     EVENT_MASK = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
 
     def __init__(self, branch='autocommit'):
@@ -82,12 +82,12 @@ class Watch(pyinotify.ProcessEvent):
 
 
 def watch(args):
-    Watch(branch=args.watch_branch).run()
+    Watcher(branch=args.watch_branch).run()
 
 
 def summarize(args):
     subprocess.check_call(['git', 'checkout', '-B', args.branch])
-    subprocess.check_call(['git', 'merge', '-B', self.branch])
+    subprocess.check_call(['git', 'merge', self.watch_branch])
 
 
 
