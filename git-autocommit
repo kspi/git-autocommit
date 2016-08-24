@@ -127,7 +127,7 @@ def main():
     watch_parser = subparsers.add_parser('watch', help='watch repository for changes and commit them [default]')
     watch_parser.set_defaults(func=watch)
 
-    summarize_parser = subparsers.add_parser('summarize', help='merge automatic commits into normal branch')
+    summarize_parser = subparsers.add_parser('summarize', help='merge automatic commits back into normal branch')
     summarize_parser.add_argument("-b", "--branch", type=str, default='master',
                                   help="commit summary to this branch [default: master]")
     summarize_parser.add_argument("-m", "--message", type=str, default='',
