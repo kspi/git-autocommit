@@ -79,7 +79,7 @@ class Watcher(pyinotify.ProcessEvent):
             self.loop.call_later(1, self.commit)
         else:
             message = "Automatic commit at {:%Y-%m-%d %H:%M:%S}".format(datetime.now())
-            subprocess.check_call(['git', 'checkout', '-B', self.branch])
+            subprocess.check_call(['git', 'checkout', self.branch])
             subprocess.check_call(['git', 'add', '-A', '.'])
             if subprocess.check_output(['git', 'status', '--porcelain']):
                 subprocess.check_call(['git', 'status', '--short'])
